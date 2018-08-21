@@ -1,9 +1,9 @@
-const fs = require('fs');
-const promisify = require('../utils/promisify');
-const path = require('path');
-const {mkdirp} = require('../utils/fs');
+import fs from 'fs';
+import promisify from '../utils/promisify';
+import path from 'path';
+import { mkdirp } from '../utils/fs';
 
-class Packager {
+export default class Packager {
   constructor(bundle, bundler) {
     this.bundle = bundle;
     this.bundler = bundler;
@@ -44,5 +44,3 @@ class Packager {
     await this.dest.end();
   }
 }
-
-module.exports = Packager;

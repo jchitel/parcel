@@ -1,8 +1,8 @@
-const path = require('path');
-const prettifyTime = require('./prettifyTime');
-const logger = require('../Logger');
-const emoji = require('./emoji');
-const filesize = require('filesize');
+import path from 'path';
+import prettifyTime from './prettifyTime';
+import logger from '../Logger';
+import emoji from './emoji';
+import filesize from 'filesize';
 
 const LARGE_BUNDLE_SIZE = 1024 * 1024;
 const NUM_LARGE_ASSETS = 10;

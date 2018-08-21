@@ -72,6 +72,14 @@
     "ws": "^5.1.1"
   },
   "devDependencies": {
+    "@types/clone": "^0.1.30",
+    "@types/deasync": "^0.1.0",
+    "@types/is-url": "^1.2.28",
+    "@types/json5": "^0.0.29",
+    "@types/mkdirp": "^0.5.2",
+    "@types/node": "^10.7.1",
+    "@types/ora": "^1.3.4",
+    "@types/strip-ansi": "^3.0.0",
     "@vue/component-compiler-utils": "^2.0.0",
     "babel-cli": "^6.26.0",
     "babel-plugin-transform-async-super": "^1.0.0",
@@ -103,7 +111,7 @@
     "sinon": "^5.0.1",
     "sourcemap-validator": "^1.0.6",
     "stylus": "^0.54.5",
-    "typescript": "^3.0.0",
+    "typescript": "^3.0.1",
     "vue": "^2.5.16",
     "vue-template-compiler": "^2.5.16"
   },
