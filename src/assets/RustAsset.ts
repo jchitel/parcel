@@ -1,14 +1,14 @@
-const path = require('path');
-const commandExists = require('command-exists');
-const childProcess = require('child_process');
-const promisify = require('../utils/promisify');
+import path from 'path';
+import commandExists from 'command-exists';
+import childProcess from 'child_process';
+import promisify from '../utils/promisify';
 const exec = promisify(childProcess.execFile);
-const tomlify = require('tomlify-j0.4');
-const fs = require('../utils/fs');
-const Asset = require('../Asset');
-const config = require('../utils/config');
-const pipeSpawn = require('../utils/pipeSpawn');
-const md5 = require('../utils/md5');
+import tomlify from 'tomlify-j0.4';
+import fs from '../utils/fs';
+import Asset from '../Asset';
+import config from '../utils/config';
+import pipeSpawn from '../utils/pipeSpawn';
+import md5 from '../utils/md5';
 
 const RUST_TARGET = 'wasm32-unknown-unknown';
 const MAIN_FILES = ['src/lib.rs', 'src/main.rs'];

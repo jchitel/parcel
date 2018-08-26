@@ -1,7 +1,7 @@
-const Asset = require('../Asset');
-const path = require('path');
-const json5 = require('json5');
-const {minify} = require('terser');
+import Asset from '../Asset';
+import path from 'path';
+import json5 from 'json5';
+import { minify } from 'terser';
 
 class JSONAsset extends Asset {
   constructor(name, options) {

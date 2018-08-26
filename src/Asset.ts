@@ -7,8 +7,32 @@ import md5 from './utils/md5';
 import isURL from './utils/is-url';
 import * as config from './utils/config';
 import syncPromise from './utils/syncPromise';
-import * as logger from './Logger';
-import Resolver from './Resolver';
+import logger from './Logger';
+import Resolver, { PackageJson } from './Resolver';
+import Parser from './Parser';
+
+
+export interface AssetOptions {
+    rootDir: string;
+    rendition?: none;
+    parser: Parser;
+    production?: boolean;
+    scopeHoist?: boolean;
+    bundleLoaders: { [type: string]: none };
+    publicURL: string;
+    outDir: string;
+    entryFiles: string[];
+    outFile: string;
+}
+
+export type AssetGeneration = { type?: string, value?: string, final?: boolean };
+
+/**
+ * Most assets should return this from generate().
+ */
+export type StandardAssetGeneration = AssetGeneration | AssetGeneration[];
+
+export type AssetClass<Contents, Generated> = { new (name: string, options: AssetOptions): Asset<Contents, Generated> };
 
 /**
  * An Asset represents a file in the dependency tree. Assets can have multiple
@@ -16,19 +40,19 @@ import Resolver from './Resolver';
  * The base Asset class doesn't do much by itself, but sets up an interface
  * for subclasses to implement.
  */
-export default class Asset {
+export default class Asset<Contents, Generated> {
     id: string | null;
     name: string;
     basename: string;
     relativeName: string;
-    options: none;
+    options: AssetOptions;
     encoding: string;
-    type: string;
+    type: string | null;
     processed: boolean;
-    contents: none | null;
+    contents: Contents | null;
     ast: none | null;
-    generated: none | null;
-    hash: none | null;
+    generated: Generated | null;
+    hash: string | Buffer | null;
     parentDeps: Set<none>;
     dependencies: Map<string, none>;
     depAssets: Map<none, none>;
@@ -41,7 +65,11 @@ export default class Asset {
     bundledSize: number;
     resolver: Resolver;
 
-    constructor(name: string, options: none) {
+    usedExports?: Set<none>;
+
+    private _package?: PackageJson;
+
+    constructor(name: string, options: AssetOptions) {
         this.id = null;
         this.name = name;
         this.basename = path.basename(this.name);
@@ -81,7 +109,7 @@ export default class Asset {
     async parseIfNeeded(): Promise<void> {
         await this.loadIfNeeded();
         if (!this.ast) {
-            this.ast = await this.parse(this.contents);
+            this.ast = await this.parse(this.contents!);
         }
     }
 
@@ -101,7 +129,7 @@ export default class Asset {
         }
     }
 
-    addDependency(name: string, opts: none) {
+    addDependency(name: string, opts?: none): void {
         this.dependencies.set(name, Object.assign({ name }, opts));
     }
 
@@ -140,14 +168,14 @@ export default class Asset {
         return URL.format(parsed);
     }
 
-    get package() {
+    get package(): PackageJson | undefined {
         logger.warn(
             '`asset.package` is deprecated. Please use `await asset.getPackage()` instead.'
         );
         return syncPromise(this.getPackage());
     }
 
-    async getPackage() {
+    async getPackage(): Promise<PackageJson | undefined> {
         if (!this._package) {
             this._package = await this.resolver.findPackage(path.dirname(this.name));
         }
@@ -155,7 +183,7 @@ export default class Asset {
         return this._package;
     }
 
-    async getConfig(filenames, opts = {}) {
+    async getConfig(filenames: string[], opts: { packageKey?: keyof PackageJson, path?: string, load?: boolean } = {}): Promise<unknown> {
         if (opts.packageKey) {
             let pkg = await this.getPackage();
             if (pkg && pkg[opts.packageKey]) {
@@ -183,11 +211,11 @@ export default class Asset {
         return true;
     }
 
-    async load() {
-        return await fs.readFile(this.name, this.encoding);
+    async load(): Promise<Contents> {
+        return await fs.readFile(this.name, this.encoding) as any; // this is the base, an asset loads the file as a string
     }
 
-    parse() {
+    parse(_contents?: Contents) {
         // do nothing by default
     }
 
@@ -203,10 +231,10 @@ export default class Asset {
         // do nothing by default
     }
 
-    async generate() {
+    async generate(): Promise<Generated> {
         return {
-            [this.type]: this.contents
-        };
+            [this.type as string]: this.contents
+        } as any; // default implementation
     }
 
     async process() {
@@ -233,11 +261,11 @@ export default class Asset {
         return this.generated;
     }
 
-    async postProcess(generated) {
+    async postProcess(generated: Generated): Promise<Generated> {
         return generated;
     }
 
-    generateHash() {
+    async generateHash(): Promise<string | Buffer> {
         return objectHash(this.generated);
     }
 
@@ -263,13 +291,13 @@ export default class Asset {
         return md5(this.name) + '.' + this.type;
     }
 
-    replaceBundleNames(bundleNameMap) {
+    replaceBundleNames(bundleNameMap: Map<string, none>) {
         let copied = false;
-        for (let key in this.generated) {
-            let value = this.generated[key];
+        for (let key in this.generated!) {
+            let value = this.generated![key];
             if (typeof value === 'string') {
                 // Replace temporary bundle names in the output with the final content-hashed names.
-                let newValue = value;
+                let newValue: string = value;
                 for (let [name, map] of bundleNameMap) {
                     newValue = newValue.split(name).join(map);
                 }
@@ -280,12 +308,12 @@ export default class Asset {
                     copied = true;
                 }
 
-                this.generated[key] = newValue;
+                this.generated![key] = newValue;
             }
         }
     }
 
-    generateErrorMessage(err) {
+    generateErrorMessage(err: none): none {
         return err;
     }
 }

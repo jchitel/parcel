@@ -1,6 +1,6 @@
-const Asset = require('../Asset');
-const toml = require('toml');
-const serializeObject = require('../utils/serializeObject');
+import Asset from '../Asset';
+import toml from 'toml';
+import serializeObject from '../utils/serializeObject';
 
 class TOMLAsset extends Asset {
   constructor(name, options) {

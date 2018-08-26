@@ -1,6 +1,7 @@
 import { WorkerProcessOptions } from '../worker';
 import { ParcelError } from '../utils/prettyError';
 import { LogTableColumn } from '../Logger';
+import { PipelineProcessResult } from '../Pipeline';
 
 
 // Explanation:
@@ -38,7 +39,7 @@ export interface WorkerOperations {
     /**
      * Starts the work assigned to the worker in the worker process (see run() in ../worker)
      */
-    run: (path: string, isWarmUp?: boolean) => none;
+    run: (path: string, isWarmUp?: boolean) => PipelineProcessResult;
 }
 
 /**
@@ -79,6 +80,7 @@ export interface MasterOperations {
     progress(message: string): void;
     stopSpinner(): void;
     table(columns: Array<LogTableColumn>, table: string[][]): void;
+    installPackage()
 }
 
 /**
@@ -119,7 +121,7 @@ export interface WorkerCall<N extends WorkerOperationName = WorkerOperationName>
  * calling WorkerFarm.callMaster() on the master process will call WorkerFarm.processRequest(), which expects a MasterRequest.
  */
 export interface MasterCall<N extends MasterOperationName = MasterOperationName> {
-    method: N;
+    method?: N;
     args: MasterOperationArgs<N>;
     /** The full path of the module containing the implementation of the method */
     location: string;

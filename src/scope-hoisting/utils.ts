@@ -1,28 +1,25 @@
-const t = require('babel-types');
+import t from 'babel-types';
+import Asset from '../Asset';
 
-function getName(asset, type, ...rest) {
-  return (
-    '$' +
-    t.toIdentifier(asset.id) +
-    '$' +
-    type +
-    (rest.length
-      ? '$' +
-        rest
-          .map(name => (name === 'default' ? name : t.toIdentifier(name)))
-          .join('$')
-      : '')
-  );
+export function getName(asset: Asset<unknown, unknown>, type: string, ...rest: string[]) {
+    return (
+        '$' +
+        (t as any).toIdentifier(asset.id) + // types are wrong...
+        '$' +
+        type +
+        (rest.length
+            ? '$' +
+                rest
+                    .map(name => (name === 'default' ? name : (t as any).toIdentifier(name))) // types are wrong...
+                    .join('$')
+            : '')
+    );
 }
 
-function getIdentifier(asset, type, ...rest) {
-  return t.identifier(getName(asset, type, ...rest));
+export function getIdentifier(asset: Asset<unknown, unknown>, type: string, ...rest: string[]) {
+    return t.identifier(getName(asset, type, ...rest));
 }
 
-function getExportIdentifier(asset, name) {
-  return getIdentifier(asset, 'export', name);
+export function getExportIdentifier(asset: Asset<unknown, unknown>, name: string) {
+    return getIdentifier(asset, 'export', name);
 }
-
-exports.getName = getName;
-exports.getIdentifier = getIdentifier;
-exports.getExportIdentifier = getExportIdentifier;

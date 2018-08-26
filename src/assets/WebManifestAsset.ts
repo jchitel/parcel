@@ -1,4 +1,4 @@
-const Asset = require('../Asset');
+import Asset from '../Asset';
 
 class WebManifestAsset extends Asset {
   constructor(name, options) {

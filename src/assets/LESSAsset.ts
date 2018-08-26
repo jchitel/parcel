@@ -1,10 +1,10 @@
-const Asset = require('../Asset');
-const localRequire = require('../utils/localRequire');
-const promisify = require('../utils/promisify');
-const Resolver = require('../Resolver');
-const fs = require('../utils/fs');
-const path = require('path');
-const parseCSSImport = require('../utils/parseCSSImport');
+import Asset from '../Asset';
+import localRequire from '../utils/localRequire';
+import promisify from '../utils/promisify';
+import Resolver from '../Resolver';
+import fs from '../utils/fs';
+import path from 'path';
+import parseCSSImport from '../utils/parseCSSImport';
 
 class LESSAsset extends Asset {
   constructor(name, options) {

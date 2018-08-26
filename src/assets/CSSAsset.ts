@@ -1,8 +1,8 @@
-const Asset = require('../Asset');
-const postcss = require('postcss');
-const valueParser = require('postcss-value-parser');
-const postcssTransform = require('../transforms/postcss');
-const CssSyntaxError = require('postcss/lib/css-syntax-error');
+import Asset from '../Asset';
+import postcss from 'postcss';
+import valueParser from 'postcss-value-parser';
+import postcssTransform from '../transforms/postcss';
+import CssSyntaxError from 'postcss/lib/css-syntax-error';
 
 const URL_RE = /url\s*\("?(?![a-z]+:)/;
 const IMPORT_RE = /@import/;

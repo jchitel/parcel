@@ -1,6 +1,6 @@
-const Asset = require('../Asset');
-const fs = require('../utils/fs');
-const localRequire = require('../utils/localRequire');
+import Asset from '../Asset';
+import * as fs from '../utils/fs';
+import localRequire from '../utils/localRequire';
 
 class ReasonAsset extends Asset {
   constructor(name, options) {

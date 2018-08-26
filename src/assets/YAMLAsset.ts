@@ -1,6 +1,6 @@
-const Asset = require('../Asset');
-const yaml = require('js-yaml');
-const serializeObject = require('../utils/serializeObject');
+import Asset from '../Asset';
+import yaml from 'js-yaml';
+import serializeObject from '../utils/serializeObject';
 
 class YAMLAsset extends Asset {
   constructor(name, options) {

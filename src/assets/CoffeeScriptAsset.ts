@@ -1,5 +1,5 @@
-const Asset = require('../Asset');
-const localRequire = require('../utils/localRequire');
+import Asset from '../Asset';
+import localRequire from '../utils/localRequire';
 
 class CoffeeScriptAsset extends Asset {
   constructor(name, options) {

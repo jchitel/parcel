@@ -1,5 +1,5 @@
-const FSWatcher = require('fswatcher-child');
-const Path = require('path');
+import FSWatcher from 'fswatcher-child';
+import Path from 'path';
 
 /**
  * This watcher wraps chokidar so that we watch directories rather than individual files on macOS.
@@ -7,132 +7,135 @@ const Path = require('path');
  * Chokidar does not have support for watching directories on non-macOS platforms, so we disable
  * this behavior in order to prevent watching more individual files than necessary (e.g. node_modules).
  */
-class Watcher {
-  constructor() {
-    // FS events on macOS are flakey in the tests, which write lots of files very quickly
-    // See https://github.com/paulmillr/chokidar/issues/612
-    this.shouldWatchDirs =
-      process.platform === 'darwin' && process.env.NODE_ENV !== 'test';
-    this.watcher = new FSWatcher({
-      useFsEvents: this.shouldWatchDirs,
-      ignoreInitial: true,
-      ignorePermissionErrors: true,
-      ignored: /\.cache|\.git/
-    });
+export default class Watcher {
+    shouldWatchDirs: boolean;
+    watcher: FSWatcher;
+    watchedDirectories: Map<string, number>;
+    stopped: boolean;
 
-    this.watchedDirectories = new Map();
-    this.stopped = false;
-  }
+    constructor() {
+        // FS events on macOS are flakey in the tests, which write lots of files very quickly
+        // See https://github.com/paulmillr/chokidar/issues/612
+        this.shouldWatchDirs =
+            process.platform === 'darwin' && process.env.NODE_ENV !== 'test';
+        this.watcher = new FSWatcher({
+            useFsEvents: this.shouldWatchDirs,
+            ignoreInitial: true,
+            ignorePermissionErrors: true,
+            ignored: /\.cache|\.git/
+        });
 
-  /**
-   * Find a parent directory of `path` which is already watched
-   */
-  getWatchedParent(path) {
-    path = Path.dirname(path);
-
-    let root = Path.parse(path).root;
-    while (path !== root) {
-      if (this.watchedDirectories.has(path)) {
-        return path;
-      }
-
-      path = Path.dirname(path);
+        this.watchedDirectories = new Map();
+        this.stopped = false;
     }
 
-    return null;
-  }
+    /**
+     * Find a parent directory of `path` which is already watched
+     */
+    getWatchedParent(path: string): string | null {
+        path = Path.dirname(path);
 
-  /**
-   * Find a list of child directories of `path` which are already watched
-   */
-  getWatchedChildren(path) {
-    path = Path.dirname(path) + Path.sep;
+        let root = Path.parse(path).root;
+        while (path !== root) {
+            if (this.watchedDirectories.has(path)) {
+                return path;
+            }
 
-    let res = [];
-    for (let dir of this.watchedDirectories.keys()) {
-      if (dir.startsWith(path)) {
-        res.push(dir);
-      }
-    }
-
-    return res;
-  }
-
-  /**
-   * Add a path to the watcher
-   */
-  watch(path) {
-    if (this.shouldWatchDirs) {
-      // If there is no parent directory already watching this path, add a new watcher.
-      let parent = this.getWatchedParent(path);
-      if (!parent) {
-        // Find watchers on child directories, and remove them. They will be handled by the new parent watcher.
-        let children = this.getWatchedChildren(path);
-        let count = 1;
-
-        for (let dir of children) {
-          count += this.watchedDirectories.get(dir);
-          this.watcher._closePath(dir);
-          this.watchedDirectories.delete(dir);
+            path = Path.dirname(path);
         }
 
-        let dir = Path.dirname(path);
-        this.watcher.add(dir);
-        this.watchedDirectories.set(dir, count);
-      } else {
-        // Otherwise, increment the reference count of the parent watcher.
-        this.watchedDirectories.set(
-          parent,
-          this.watchedDirectories.get(parent) + 1
-        );
-      }
-    } else {
-      this.watcher.add(path);
+        return null;
     }
-  }
 
-  /**
-   * Remove a path from the watcher
-   */
-  unwatch(path) {
-    if (this.shouldWatchDirs) {
-      let dir = this.getWatchedParent(path);
-      if (dir) {
-        // When the count of files watching a directory reaches zero, unwatch it.
-        let count = this.watchedDirectories.get(dir) - 1;
-        if (count === 0) {
-          this.watchedDirectories.delete(dir);
-          this.watcher.unwatch(dir);
+    /**
+     * Find a list of child directories of `path` which are already watched
+     */
+    getWatchedChildren(path: string): string[] {
+        path = Path.dirname(path) + Path.sep;
+
+        let res = [];
+        for (let dir of this.watchedDirectories.keys()) {
+            if (dir.startsWith(path)) {
+                res.push(dir);
+            }
+        }
+
+        return res;
+    }
+
+    /**
+     * Add a path to the watcher
+     */
+    watch(path: string): void {
+        if (this.shouldWatchDirs) {
+            // If there is no parent directory already watching this path, add a new watcher.
+            let parent = this.getWatchedParent(path);
+            if (!parent) {
+                // Find watchers on child directories, and remove them. They will be handled by the new parent watcher.
+                let children = this.getWatchedChildren(path);
+                let count = 1;
+
+                for (let dir of children) {
+                    count += this.watchedDirectories.get(dir)!;
+                    this.watcher._closePath(dir);
+                    this.watchedDirectories.delete(dir);
+                }
+
+                let dir = Path.dirname(path);
+                this.watcher.add(dir);
+                this.watchedDirectories.set(dir, count);
+            } else {
+                // Otherwise, increment the reference count of the parent watcher.
+                this.watchedDirectories.set(
+                    parent,
+                    this.watchedDirectories.get(parent)! + 1
+                );
+            }
         } else {
-          this.watchedDirectories.set(dir, count);
+            this.watcher.add(path);
         }
-      }
-    } else {
-      this.watcher.unwatch(path);
     }
-  }
 
-  /**
-   * Add an event handler
-   */
-  on(event, callback) {
-    this.watcher.on(event, callback);
-  }
+    /**
+     * Remove a path from the watcher
+     */
+    unwatch(path: string): void {
+        if (this.shouldWatchDirs) {
+            let dir = this.getWatchedParent(path);
+            if (dir) {
+                // When the count of files watching a directory reaches zero, unwatch it.
+                let count = this.watchedDirectories.get(dir)! - 1;
+                if (count === 0) {
+                    this.watchedDirectories.delete(dir);
+                    this.watcher.unwatch(dir);
+                } else {
+                    this.watchedDirectories.set(dir, count);
+                }
+            }
+        } else {
+            this.watcher.unwatch(path);
+        }
+    }
 
-  /**
-   * Add an event handler
-   */
-  once(event, callback) {
-    this.watcher.once(event, callback);
-  }
+    /**
+     * Add an event handler
+     */
+    on(event: string, callback: (...args: any[]) => void): void {
+        this.watcher.on(event, callback);
+    }
 
-  /**
-   * Stop watching all paths
-   */
-  stop() {
-    this.stopped = true;
-    this.watcher.close();
-  }
+    /**
+     * Add an event handler
+     */
+    once(event: string, callback: (...args: any[]) => void): void {
+        this.watcher.once(event, callback);
+    }
+
+    /**
+     * Stop watching all paths
+     */
+    stop() {
+        this.stopped = true;
+        this.watcher.close();
+    }
 }
-
-module.exports = Watcher;

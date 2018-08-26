@@ -1,9 +1,9 @@
 export interface ParcelError extends Error {
-    fileName: string;
-    loc: { line: number, column: number };
-    codeFrame: string;
-    highlightedCodeFrame: string;
-    stack: string;
+    fileName?: string;
+    loc?: { line: number, column: number };
+    codeFrame?: string;
+    highlightedCodeFrame?: string;
+    stack?: string;
 }
 
 export interface PrettyErrorOptions {

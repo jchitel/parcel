@@ -216,7 +216,7 @@ export default class WorkerFarm extends EventEmitter {
                 retries: 0,
                 resolve,
                 reject
-            });
+            } as WorkerCall<N>);
             this.processQueue();
         });
     }

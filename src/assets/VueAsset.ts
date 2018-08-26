@@ -1,7 +1,7 @@
-const Asset = require('../Asset');
-const localRequire = require('../utils/localRequire');
-const md5 = require('../utils/md5');
-const {minify} = require('terser');
+import Asset from '../Asset';
+import localRequire from '../utils/localRequire';
+import md5 from '../utils/md5';
+import { minify } from 'terser';
 
 class VueAsset extends Asset {
   constructor(name, options) {

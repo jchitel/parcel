@@ -1,11 +1,11 @@
 // const CSSAsset = require('./CSSAsset');
-const Asset = require('../Asset');
-const localRequire = require('../utils/localRequire');
-const Resolver = require('../Resolver');
-const fs = require('../utils/fs');
-const {dirname, resolve, relative} = require('path');
-const isGlob = require('is-glob');
-const glob = require('fast-glob');
+import Asset from '../Asset';
+import localRequire from '../utils/localRequire';
+import Resolver from '../Resolver';
+import * as fs from '../utils/fs';
+import { dirname, resolve, relative } from 'path';
+import isGlob from 'is-glob';
+import glob from 'fast-glob';
 
 const URL_RE = /^(?:url\s*\(\s*)?['"]?(?:[#/]|(?:https?:)?\/\/)/i;
 

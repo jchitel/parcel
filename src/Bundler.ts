@@ -7,7 +7,7 @@ import Bundle from './Bundle';
 import Watcher from './Watcher';
 import FSCache from './FSCache';
 import HMRServer from './HMRServer';
-import Server from './Server';
+import * as Server from './Server';
 import { EventEmitter }  from 'events';
 import logger, { LogLevel } from './Logger';
 import PackagerRegistry from './packagers';
@@ -75,6 +75,7 @@ export interface BundlerOptions {
     contentHash: boolean;
     entryFiles: string[];
     rootDir: string;
+    bundleLoaders: { [type: string]: BundleLoaderConfig };
 }
 
 export interface BundlerDelegate {

@@ -2,11 +2,26 @@ import path from 'path';
 import RawAsset from './assets/RawAsset';
 import GlobAsset from './assets/GlobAsset';
 import isGlob from 'is-glob';
+import Asset, { AssetClass, AssetOptions } from './Asset';
 
-class Parser {
-    extensions: { [ext: string]: string };
 
-    constructor(options: none = {}) {
+export interface ParserOptions {
+    extensions?: { [ext: string]: string };
+}
+
+export interface ParserGetAssetOptions {
+    rootDir: string;
+    rendition?: none;
+    production?: boolean;
+    scopeHoist?: boolean;
+    bundleLoaders: { [type: string]: none };
+    publicURL: string;
+}
+
+export default class Parser {
+    extensions: { [ext: string]: string | AssetClass<unknown, unknown> };
+
+    constructor(options: ParserOptions = {}) {
         this.extensions = {};
 
         this.registerExtension('js', './assets/JSAsset');
@@ -64,7 +79,7 @@ class Parser {
         this.extensions[ext.toLowerCase()] = parser;
     }
 
-    findParser(filename: string, fromPipeline: boolean): Asset {
+    findParser(filename: string, fromPipeline?: boolean): AssetClass<unknown, unknown> {
         if (!fromPipeline && isGlob(filename)) {
             return GlobAsset;
         }
@@ -72,17 +87,14 @@ class Parser {
         let extension = path.extname(filename).toLowerCase();
         let parser = this.extensions[extension] || RawAsset;
         if (typeof parser === 'string') {
-            parser = this.extensions[extension] = require(parser);
+            parser = this.extensions[extension] = require(parser) as typeof Asset;
         }
 
         return parser;
     }
 
-    getAsset(filename: string, options: none = {}) {
+    getAsset(filename: string, options: ParserGetAssetOptions = {} as ParserGetAssetOptions): Asset<unknown, unknown> {
         let Asset = this.findParser(filename);
-        options.parser = this;
-        return new Asset(filename, options);
+        return new Asset(filename, { ...options, parser: this });
     }
 }
-
-module.exports = Parser;

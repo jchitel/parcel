@@ -1,5 +1,5 @@
 import 'v8-compile-cache';
-import Pipeline from './Pipeline';
+import Pipeline, { PipelineProcessResult } from './Pipeline';
 
 let pipeline: Pipeline;
 
@@ -10,6 +10,9 @@ export interface WorkerProcessOptions {
     env?: NodeJS.ProcessEnv;
     hmrPort?: number;
     hmrHostname?: string;
+    rootDir?: string;
+    scopeHoist?: boolean;
+    extensions?: { [ext: string]: string };
 }
 
 export function init(options: WorkerProcessOptions): void {
@@ -19,7 +22,7 @@ export function init(options: WorkerProcessOptions): void {
     process.env.HMR_HOSTNAME = options.hmrHostname;
 }
 
-export async function run(path: string, isWarmUp: boolean = false): none {
+export async function run(path: string, isWarmUp: boolean = false): Promise<PipelineProcessResult> {
     try {
         return await pipeline.process(path, isWarmUp);
     } catch (e) {

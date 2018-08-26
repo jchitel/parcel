@@ -1,8 +1,8 @@
-const Asset = require('../Asset');
-const localRequire = require('../utils/localRequire');
-const path = require('path');
-const promisify = require('../utils/promisify');
-const Resolver = require('../Resolver');
+import Asset from '../Asset';
+import localRequire from '../utils/localRequire';
+import path from 'path';
+import promisify from '../utils/promisify';
+import Resolver from '../Resolver';
 
 class GLSLAsset extends Asset {
   constructor(name, options) {

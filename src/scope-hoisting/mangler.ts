@@ -1,8 +1,8 @@
-const rename = require('./renamer');
-const t = require('babel-types');
+import rename from './renamer';
+import t from 'babel-types';
 
 const CHARSET = (
-  'abcdefghijklmnopqrstuvwxyz' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$_'
+    'abcdefghijklmnopqrstuvwxyz' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$_'
 ).split('');
 
 /**
@@ -13,60 +13,58 @@ const CHARSET = (
  * Based on code from babel-minify!
  * https://github.com/babel/minify/blob/master/packages/babel-plugin-minify-mangle-names/src/charset.js
  */
-function mangleScope(scope) {
-  let newNames = new Set();
+export default function mangleScope(scope) {
+    let newNames = new Set();
 
-  // Sort bindings so that more frequently referenced bindings get shorter names.
-  let sortedBindings = Object.keys(scope.bindings).sort(
-    (a, b) =>
-      scope.bindings[b].referencePaths.length -
-      scope.bindings[a].referencePaths.length
-  );
-
-  for (let oldName of sortedBindings) {
-    let i = 0;
-    let newName = '';
-
-    do {
-      newName = getIdentifier(i++);
-    } while (
-      newNames.has(newName) ||
-      !canRename(scope, scope.bindings[oldName], newName)
+    // Sort bindings so that more frequently referenced bindings get shorter names.
+    let sortedBindings = Object.keys(scope.bindings).sort(
+        (a, b) =>
+            scope.bindings[b].referencePaths.length -
+            scope.bindings[a].referencePaths.length
     );
 
-    rename(scope, oldName, newName);
-    newNames.add(newName);
-  }
+    for (let oldName of sortedBindings) {
+        let i = 0;
+        let newName = '';
+
+        do {
+            newName = getIdentifier(i++);
+        } while (
+            newNames.has(newName) ||
+            !canRename(scope, scope.bindings[oldName], newName)
+        );
+
+        rename(scope, oldName, newName);
+        newNames.add(newName);
+    }
 }
 
 function getIdentifier(num) {
-  let ret = '';
-  num++;
+    let ret = '';
+    num++;
 
-  do {
-    num--;
-    ret += CHARSET[num % CHARSET.length];
-    num = Math.floor(num / CHARSET.length);
-  } while (num > 0);
+    do {
+        num--;
+        ret += CHARSET[num % CHARSET.length];
+        num = Math.floor(num / CHARSET.length);
+    } while (num > 0);
 
-  return ret;
+    return ret;
 }
 
 function canRename(scope, binding, newName) {
-  if (!t.isValidIdentifier(newName)) {
-    return false;
-  }
-
-  // If there are any references where the parent scope has a binding
-  // for the new name, we cannot rename to this name.
-  for (let i = 0; i < binding.referencePaths.length; i++) {
-    const ref = binding.referencePaths[i];
-    if (ref.scope.hasBinding(newName) || ref.scope.hasReference(newName)) {
-      return false;
+    if (!t.isValidIdentifier(newName)) {
+        return false;
     }
-  }
 
-  return true;
+    // If there are any references where the parent scope has a binding
+    // for the new name, we cannot rename to this name.
+    for (let i = 0; i < binding.referencePaths.length; i++) {
+        const ref = binding.referencePaths[i];
+        if (ref.scope.hasBinding(newName) || ref.scope.hasReference(newName)) {
+            return false;
+        }
+    }
+
+    return true;
 }
-
-module.exports = mangleScope;

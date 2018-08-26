@@ -1,10 +1,10 @@
-const Asset = require('../Asset');
-const localRequire = require('../utils/localRequire');
-const promisify = require('../utils/promisify');
-const path = require('path');
-const os = require('os');
-const Resolver = require('../Resolver');
-const parseCSSImport = require('../utils/parseCSSImport');
+import Asset from '../Asset';
+import localRequire from '../utils/localRequire';
+import promisify from '../utils/promisify';
+import path from 'path';
+import os from 'os';
+import Resolver from '../Resolver';
+import parseCSSImport from '../utils/parseCSSImport';
 
 class SASSAsset extends Asset {
   constructor(name, options) {

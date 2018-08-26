@@ -1,8 +1,8 @@
-const Asset = require('../Asset');
-const localRequire = require('../utils/localRequire');
-const Resolver = require('../Resolver');
-const fs = require('../utils/fs');
-const os = require('os');
+import Asset from '../Asset';
+import localRequire from '../utils/localRequire';
+import Resolver from '../Resolver';
+import fs from '../utils/fs';
+import os from 'os';
 
 const IMPORT_RE = /^# *import +['"](.*)['"] *;? *$/;
 

@@ -1,6 +1,6 @@
-const path = require('path');
-const Asset = require('../Asset');
-const localRequire = require('../utils/localRequire');
+import path from 'path';
+import Asset from '../Asset';
+import localRequire from '../utils/localRequire';
 
 class PugAsset extends Asset {
   constructor(name, options) {
