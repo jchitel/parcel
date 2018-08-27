@@ -12,7 +12,7 @@ import { EventEmitter }  from 'events';
 import logger, { LogLevel } from './Logger';
 import PackagerRegistry from './packagers';
 import localRequire from './utils/localRequire';
-import config from './utils/config';
+import * as config from './utils/config';
 import loadEnv from './utils/env';
 import PromiseQueue from './utils/PromiseQueue';
 import installPackage from './utils/installPackage';

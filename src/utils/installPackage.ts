@@ -100,7 +100,7 @@ async function checkForYarnCommand() {
 }
 
 let queue = new PromiseQueue(install, {maxConcurrent: 1, retry: false});
-module.exports = function(...args) {
+export default function(...args) {
     queue.add(...args);
     return queue.run();
 };

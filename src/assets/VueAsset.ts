@@ -3,284 +3,282 @@ import localRequire from '../utils/localRequire';
 import md5 from '../utils/md5';
 import { minify } from 'terser';
 
-class VueAsset extends Asset {
-  constructor(name, options) {
-    super(name, options);
-    this.type = 'js';
-  }
-
-  async parse(code) {
-    // Is being used in component-compiler-utils, errors if not installed...
-    this.vueTemplateCompiler = await localRequire(
-      'vue-template-compiler',
-      this.name
-    );
-    this.vue = await localRequire('@vue/component-compiler-utils', this.name);
-
-    return this.vue.parse({
-      source: code,
-      needMap: this.options.sourceMaps,
-      filename: this.relativeName, // Used for sourcemaps
-      sourceRoot: '', // Used for sourcemaps. Override so it doesn't use cwd
-      compiler: this.vueTemplateCompiler
-    });
-  }
-
-  async generate() {
-    let descriptor = this.ast;
-    let parts = [];
-
-    if (descriptor.script) {
-      parts.push({
-        type: descriptor.script.lang || 'js',
-        value: descriptor.script.content,
-        sourceMap: descriptor.script.map
-      });
+export default class VueAsset extends Asset {
+    constructor(name, options) {
+        super(name, options);
+        this.type = 'js';
     }
 
-    if (descriptor.template) {
-      parts.push({
-        type: descriptor.template.lang || 'html',
-        value: descriptor.template.content.trim()
-      });
-    }
+    async parse(code) {
+        // Is being used in component-compiler-utils, errors if not installed...
+        this.vueTemplateCompiler = await localRequire(
+            'vue-template-compiler',
+            this.name
+        );
+        this.vue = await localRequire('@vue/component-compiler-utils', this.name);
 
-    if (descriptor.styles) {
-      for (let style of descriptor.styles) {
-        parts.push({
-          type: style.lang || 'css',
-          value: style.content.trim(),
-          modules: !!style.module
+        return this.vue.parse({
+            source: code,
+            needMap: this.options.sourceMaps,
+            filename: this.relativeName, // Used for sourcemaps
+            sourceRoot: '', // Used for sourcemaps. Override so it doesn't use cwd
+            compiler: this.vueTemplateCompiler
         });
-      }
     }
 
-    return parts;
-  }
+    async generate() {
+        let descriptor = this.ast;
+        let parts = [];
 
-  async postProcess(generated) {
-    let result = [];
-
-    let hasScoped = this.ast.styles.some(s => s.scoped);
-    let id = md5(this.name).slice(-6);
-    let scopeId = hasScoped ? `data-v-${id}` : null;
-    let optsVar = '$' + id;
-
-    // Generate JS output.
-    let js = this.ast.script ? generated[0].value : '';
-    let supplemental = '';
-
-    // TODO: make it possible to process this code with the normal scope hoister
-    if (this.options.scopeHoist) {
-      optsVar = `$${this.id}$export$default`;
-
-      if (!js.includes(optsVar)) {
-        optsVar = `$${this.id}$exports`;
-        if (!js.includes(optsVar)) {
-          supplemental += `
-            var ${optsVar} = {};
-          `;
-
-          this.cacheData.isCommonJS = true;
+        if (descriptor.script) {
+            parts.push({
+                type: descriptor.script.lang || 'js',
+                value: descriptor.script.content,
+                sourceMap: descriptor.script.map
+            });
         }
-      }
-    } else {
-      supplemental += `
-        var ${optsVar} = exports.default || module.exports;
-      `;
-    }
 
-    supplemental += `
-      if (typeof ${optsVar} === 'function') {
-        ${optsVar} = ${optsVar}.options;
-      }
-    `;
-
-    supplemental += this.compileTemplate(generated, scopeId, optsVar);
-    supplemental += this.compileCSSModules(generated, optsVar);
-    supplemental += this.compileHMR(generated, optsVar);
-
-    if (this.options.minify && !this.options.scopeHoist && supplemental) {
-      let {code, error} = minify(supplemental, {toplevel: true});
-      if (error) {
-        throw error;
-      }
-
-      supplemental = code;
-      if (supplemental) {
-        supplemental = `\n(function(){${supplemental}})();`;
-      }
-    }
-    js += supplemental;
-
-    if (js) {
-      result.push({
-        type: 'js',
-        value: js
-      });
-    }
-
-    let map = generated.find(r => r.type === 'map');
-    if (map) {
-      result.push(map);
-    }
-
-    let css = this.compileStyle(generated, scopeId);
-    if (css) {
-      result.push({
-        type: 'css',
-        value: css
-      });
-    }
-
-    return result;
-  }
-
-  compileTemplate(generated, scopeId, optsVar) {
-    let html = generated.find(r => r.type === 'html');
-    if (html) {
-      let isFunctional = this.ast.template.attrs.functional;
-      let template = this.vue.compileTemplate({
-        source: html.value,
-        filename: this.relativeName,
-        compiler: this.vueTemplateCompiler,
-        isProduction: this.options.production,
-        isFunctional,
-        compilerOptions: {
-          scopeId
+        if (descriptor.template) {
+            parts.push({
+                type: descriptor.template.lang || 'html',
+                value: descriptor.template.content.trim()
+            });
         }
-      });
 
-      if (Array.isArray(template.errors) && template.errors.length >= 1) {
-        throw new Error(template.errors[0]);
-      }
+        if (descriptor.styles) {
+            for (let style of descriptor.styles) {
+                parts.push({
+                    type: style.lang || 'css',
+                    value: style.content.trim(),
+                    modules: !!style.module
+                });
+            }
+        }
 
-      return `
-        /* template */
-        Object.assign(${optsVar}, (function () {
-          ${template.code}
-          return {
-            render: render,
-            staticRenderFns: staticRenderFns,
-            _compiled: true,
-            _scopeId: ${JSON.stringify(scopeId)},
-            functional: ${JSON.stringify(isFunctional)}
-          };
-        })());
-      `;
+        return parts;
     }
 
-    return '';
-  }
+    async postProcess(generated) {
+        let result = [];
 
-  compileCSSModules(generated, optsVar) {
-    let cssRenditions = generated.filter(r => r.type === 'css');
-    let cssModulesCode = '';
-    this.ast.styles.forEach((style, index) => {
-      if (style.module) {
-        let cssModules = JSON.stringify(cssRenditions[index].cssModules);
-        let name = style.module === true ? '$style' : style.module;
-        cssModulesCode += `\nthis[${JSON.stringify(name)}] = ${cssModules};`;
-      }
-    });
+        let hasScoped = this.ast.styles.some(s => s.scoped);
+        let id = md5(this.name).slice(-6);
+        let scopeId = hasScoped ? `data-v-${id}` : null;
+        let optsVar = '$' + id;
 
-    if (cssModulesCode) {
-      cssModulesCode = `function hook(){${cssModulesCode}\n}`;
+        // Generate JS output.
+        let js = this.ast.script ? generated[0].value : '';
+        let supplemental = '';
 
-      let isFunctional =
-        this.ast.template && this.ast.template.attrs.functional;
-      if (isFunctional) {
-        return `
-          /* css modules */
-          (function () {
-            ${cssModulesCode}
-            ${optsVar}._injectStyles = hook;
-            var originalRender = ${optsVar}.render;
-            ${optsVar}.render = function (h, context) {
-              hook.call(context);
-              return originalRender(h, context);
-            };
-          })();
+        // TODO: make it possible to process this code with the normal scope hoister
+        if (this.options.scopeHoist) {
+            optsVar = `$${this.id}$export$default`;
+
+            if (!js.includes(optsVar)) {
+                optsVar = `$${this.id}$exports`;
+                if (!js.includes(optsVar)) {
+                    supplemental += `
+                        var ${optsVar} = {};
+                    `;
+
+                    this.cacheData.isCommonJS = true;
+                }
+            }
+        } else {
+            supplemental += `
+                var ${optsVar} = exports.default || module.exports;
+            `;
+        }
+
+        supplemental += `
+            if (typeof ${optsVar} === 'function') {
+                ${optsVar} = ${optsVar}.options;
+            }
         `;
-      } else {
-        return `
-          /* css modules */
-          (function () {
-            ${cssModulesCode}
-            ${optsVar}.beforeCreate = ${optsVar}.beforeCreate ? ${optsVar}.beforeCreate.concat(hook) : [hook];
-          })();
-        `;
-      }
+
+        supplemental += this.compileTemplate(generated, scopeId, optsVar);
+        supplemental += this.compileCSSModules(generated, optsVar);
+        supplemental += this.compileHMR(generated, optsVar);
+
+        if (this.options.minify && !this.options.scopeHoist && supplemental) {
+            let {code, error} = minify(supplemental, {toplevel: true});
+            if (error) {
+                throw error;
+            }
+
+            supplemental = code;
+            if (supplemental) {
+                supplemental = `\n(function(){${supplemental}})();`;
+            }
+        }
+        js += supplemental;
+
+        if (js) {
+            result.push({
+                type: 'js',
+                value: js
+            });
+        }
+
+        let map = generated.find(r => r.type === 'map');
+        if (map) {
+            result.push(map);
+        }
+
+        let css = this.compileStyle(generated, scopeId);
+        if (css) {
+            result.push({
+                type: 'css',
+                value: css
+            });
+        }
+
+        return result;
     }
 
-    return '';
-  }
+    compileTemplate(generated, scopeId, optsVar) {
+        let html = generated.find(r => r.type === 'html');
+        if (html) {
+            let isFunctional = this.ast.template.attrs.functional;
+            let template = this.vue.compileTemplate({
+                source: html.value,
+                filename: this.relativeName,
+                compiler: this.vueTemplateCompiler,
+                isProduction: this.options.production,
+                isFunctional,
+                compilerOptions: {
+                    scopeId
+                }
+            });
 
-  compileStyle(generated, scopeId) {
-    return generated.filter(r => r.type === 'css').reduce((p, r, i) => {
-      let css = r.value;
-      let scoped = this.ast.styles[i].scoped;
+            if (Array.isArray(template.errors) && template.errors.length >= 1) {
+                throw new Error(template.errors[0]);
+            }
 
-      // Process scoped styles if needed.
-      if (scoped) {
-        let {code, errors} = this.vue.compileStyle({
-          source: css,
-          filename: this.relativeName,
-          id: scopeId,
-          scoped
+            return `
+                /* template */
+                Object.assign(${optsVar}, (function () {
+                    ${template.code}
+                    return {
+                        render: render,
+                        staticRenderFns: staticRenderFns,
+                        _compiled: true,
+                        _scopeId: ${JSON.stringify(scopeId)},
+                        functional: ${JSON.stringify(isFunctional)}
+                    };
+                })());
+            `;
+        }
+
+        return '';
+    }
+
+    compileCSSModules(generated, optsVar) {
+        let cssRenditions = generated.filter(r => r.type === 'css');
+        let cssModulesCode = '';
+        this.ast.styles.forEach((style, index) => {
+            if (style.module) {
+                let cssModules = JSON.stringify(cssRenditions[index].cssModules);
+                let name = style.module === true ? '$style' : style.module;
+                cssModulesCode += `\nthis[${JSON.stringify(name)}] = ${cssModules};`;
+            }
         });
 
-        if (errors.length) {
-          throw errors[0];
+        if (cssModulesCode) {
+            cssModulesCode = `function hook(){${cssModulesCode}\n}`;
+
+            let isFunctional =
+                this.ast.template && this.ast.template.attrs.functional;
+            if (isFunctional) {
+                return `
+                    /* css modules */
+                    (function () {
+                        ${cssModulesCode}
+                        ${optsVar}._injectStyles = hook;
+                        var originalRender = ${optsVar}.render;
+                        ${optsVar}.render = function (h, context) {
+                            hook.call(context);
+                            return originalRender(h, context);
+                        };
+                    })();
+                `;
+            } else {
+                return `
+                    /* css modules */
+                    (function () {
+                        ${cssModulesCode}
+                        ${optsVar}.beforeCreate = ${optsVar}.beforeCreate ? ${optsVar}.beforeCreate.concat(hook) : [hook];
+                    })();
+                `;
+            }
         }
 
-        css = code;
-      }
-
-      return p + css;
-    }, '');
-  }
-
-  compileHMR(generated, optsVar) {
-    if (!this.options.hmr) {
-      return '';
+        return '';
     }
 
-    this.addDependency('vue-hot-reload-api');
-    this.addDependency('vue');
+    compileStyle(generated, scopeId) {
+        return generated.filter(r => r.type === 'css').reduce((p, r, i) => {
+            let css = r.value;
+            let scoped = this.ast.styles[i].scoped;
 
-    let cssHMR = '';
-    if (this.ast.styles.length) {
-      cssHMR = `
-        var reloadCSS = require('_css_loader');
-        module.hot.dispose(reloadCSS);
-        module.hot.accept(reloadCSS);
-      `;
+            // Process scoped styles if needed.
+            if (scoped) {
+                let {code, errors} = this.vue.compileStyle({
+                    source: css,
+                    filename: this.relativeName,
+                    id: scopeId,
+                    scoped
+                });
+
+                if (errors.length) {
+                    throw errors[0];
+                }
+
+                css = code;
+            }
+
+            return p + css;
+        }, '');
     }
 
-    let isFunctional = this.ast.template && this.ast.template.attrs.functional;
-
-    return `
-    /* hot reload */
-    (function () {
-      if (module.hot) {
-        var api = require('vue-hot-reload-api');
-        api.install(require('vue'));
-        if (api.compatible) {
-          module.hot.accept();
-          if (!module.hot.data) {
-            api.createRecord('${optsVar}', ${optsVar});
-          } else {
-            api.${
-              isFunctional ? 'rerender' : 'reload'
-            }('${optsVar}', ${optsVar});
-          }
+    compileHMR(generated, optsVar) {
+        if (!this.options.hmr) {
+            return '';
         }
 
-        ${cssHMR}
-      }
-    })();`;
-  }
+        this.addDependency('vue-hot-reload-api');
+        this.addDependency('vue');
+
+        let cssHMR = '';
+        if (this.ast.styles.length) {
+            cssHMR = `
+                var reloadCSS = require('_css_loader');
+                module.hot.dispose(reloadCSS);
+                module.hot.accept(reloadCSS);
+            `;
+        }
+
+        let isFunctional = this.ast.template && this.ast.template.attrs.functional;
+
+        return `
+        /* hot reload */
+        (function () {
+            if (module.hot) {
+                var api = require('vue-hot-reload-api');
+                api.install(require('vue'));
+                if (api.compatible) {
+                    module.hot.accept();
+                    if (!module.hot.data) {
+                        api.createRecord('${optsVar}', ${optsVar});
+                    } else {
+                        api.${
+                            isFunctional ? 'rerender' : 'reload'
+                        }('${optsVar}', ${optsVar});
+                    }
+                }
+
+                ${cssHMR}
+            }
+        })();`;
+    }
 }
-
-module.exports = VueAsset;

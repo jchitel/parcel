@@ -1,19 +1,17 @@
-const {minify} = require('terser');
-const {serialize} = require('serialize-to-js');
+import { minify } from 'terser';
+import { serialize } from 'serialize-to-js';
 
-function serializeObject(obj, shouldMinify = false) {
-  let code = `module.exports = ${serialize(obj)};`;
+export default function serializeObject(obj, shouldMinify = false) {
+    let code = `module.exports = ${serialize(obj)};`;
 
-  if (shouldMinify) {
-    let minified = minify(code);
-    if (minified.error) {
-      throw minified.error;
+    if (shouldMinify) {
+        let minified = minify(code);
+        if (minified.error) {
+            throw minified.error;
+        }
+
+        code = minified.code;
     }
 
-    code = minified.code;
-  }
-
-  return code;
+    return code;
 }
-
-module.exports = serializeObject;

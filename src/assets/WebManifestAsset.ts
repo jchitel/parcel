@@ -1,38 +1,36 @@
 import Asset from '../Asset';
 
-class WebManifestAsset extends Asset {
-  constructor(name, options) {
-    super(name, options);
-    this.type = 'webmanifest';
-  }
-
-  parse(content) {
-    return JSON.parse(content);
-  }
-
-  collectDependencies() {
-    if (Array.isArray(this.ast.icons)) {
-      for (let icon of this.ast.icons) {
-        icon.src = this.addURLDependency(icon.src);
-      }
+export default class WebManifestAsset extends Asset {
+    constructor(name, options) {
+        super(name, options);
+        this.type = 'webmanifest';
     }
 
-    if (Array.isArray(this.ast.screenshots)) {
-      for (let shot of this.ast.screenshots) {
-        shot.src = this.addURLDependency(shot.src);
-      }
+    parse(content) {
+        return JSON.parse(content);
     }
 
-    if (this.ast.serviceworker && this.ast.serviceworker.src) {
-      this.ast.serviceworker.src = this.addURLDependency(
-        this.ast.serviceworker.src
-      );
-    }
-  }
+    collectDependencies() {
+        if (Array.isArray(this.ast.icons)) {
+            for (let icon of this.ast.icons) {
+                icon.src = this.addURLDependency(icon.src);
+            }
+        }
 
-  generate() {
-    return JSON.stringify(this.ast);
-  }
+        if (Array.isArray(this.ast.screenshots)) {
+            for (let shot of this.ast.screenshots) {
+                shot.src = this.addURLDependency(shot.src);
+            }
+        }
+
+        if (this.ast.serviceworker && this.ast.serviceworker.src) {
+            this.ast.serviceworker.src = this.addURLDependency(
+                this.ast.serviceworker.src
+            );
+        }
+    }
+
+    generate() {
+        return JSON.stringify(this.ast);
+    }
 }
-
-module.exports = WebManifestAsset;

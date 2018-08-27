@@ -1,5 +1,5 @@
 import Asset from '../Asset';
-import api from 'posthtml/lib/api';
+import * as api from 'posthtml/lib/api';
 import urlJoin from '../utils/urlJoin';
 import render from 'posthtml-render';
 import posthtmlTransform from '../transforms/posthtml';
